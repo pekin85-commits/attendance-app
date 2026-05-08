@@ -35,6 +35,11 @@ def dashboard():
 
     <h1>Attendance Dashboard</h1>
 
+	<br><br>
+	<a href="/export">
+    		<button>⬇️ Download Attendance CSV</button>
+	</a>
+
     {% if session.active %}
         <h2 style="font-size:60px;">{{ session.code }}</h2>
         <p>Started: {{ session.start_time }}</p>
