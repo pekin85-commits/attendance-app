@@ -1,5 +1,9 @@
 from flask import Flask, request, redirect, url_for, render_template_string, Response
 from datetime import datetime
+import zoneinfo
+
+local_time = datetime.now(zoneinfo.ZoneInfo("America/New_York"))
+
 import random
 import threading
 import time
@@ -22,7 +26,7 @@ def rotate_codes():
         if current_session["active"]:
             current_session["previous_code"] = current_session["code"]
             current_session["code"] = generate_code()
-        time.sleep(60)
+        time.sleep(30)
 
 threading.Thread(target=rotate_codes, daemon=True).start()
 
@@ -59,7 +63,7 @@ def start():
     current_session["active"] = True
     current_session["code"] = generate_code()
     current_session["previous_code"] = None
-    current_session["start_time"] = datetime.now()
+    current_session["start_time"] = datetime.now(zoneinfo.ZoneInfo("America/New_York"))
     current_session["checkins"] = []
     return redirect(url_for("dashboard"))
 
@@ -104,7 +108,7 @@ def checkin():
         current_session["checkins"].append({
             "name": name,
             "status": status,
-            "time": datetime.now().strftime("%H:%M:%S"),
+            "time": local_time.strftime("%H:%M:%S"),
             "ip": user_ip
         })
 
