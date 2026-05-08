@@ -1,38 +1,38 @@
 from flask import Flask, request, redirect, url_for, render_template_string, Response
 from datetime import datetime
 import zoneinfo
-
-local_time = datetime.now(zoneinfo.ZoneInfo("America/New_York"))
-
 import random
-import threading
-import time
 
 app = Flask(__name__)
+
+TZ = zoneinfo.ZoneInfo("America/New_York")
 
 current_session = {
     "active": False,
     "code": None,
     "previous_code": None,
     "start_time": None,
-    "checkins": []
+    "checkins": [],
+    "last_rotation": None
 }
 
 def generate_code():
     return str(random.randint(10000, 99999))
 
-def rotate_codes():
-    while True:
-        if current_session["active"]:
-            current_session["previous_code"] = current_session["code"]
-            current_session["code"] = generate_code()
-        time.sleep(30)
-
-threading.Thread(target=rotate_codes, daemon=True).start()
-
 @app.route("/")
 def dashboard():
+    if current_session["active"]:
+        now = datetime.now(TZ)
+        elapsed = (now - current_session["last_rotation"]).seconds
+
+        if elapsed >= 30:
+            current_session["previous_code"] = current_session["code"]
+            current_session["code"] = generate_code()
+            current_session["last_rotation"] = now
+
     return render_template_string("""
+    <meta http-equiv="refresh" content="5">
+
     <h1>Attendance Dashboard</h1>
 
     {% if session.active %}
@@ -63,7 +63,8 @@ def start():
     current_session["active"] = True
     current_session["code"] = generate_code()
     current_session["previous_code"] = None
-    current_session["start_time"] = datetime.now(zoneinfo.ZoneInfo("America/New_York"))
+    current_session["start_time"] = datetime.now(TZ)
+    current_session["last_rotation"] = datetime.now(TZ)
     current_session["checkins"] = []
     return redirect(url_for("dashboard"))
 
@@ -86,7 +87,7 @@ def checkin():
 
         user_ip = request.remote_addr
 
-        # ✅ Duplicate check
+        # Duplicate check
         for c in current_session["checkins"]:
             if c["name"] == name or c["ip"] == user_ip:
                 return """
@@ -94,21 +95,23 @@ def checkin():
                 <p>You have already submitted attendance.</p>
                 """
 
-        # ✅ Code validation
+        # Code validation
         if code != current_session["code"] and code != current_session["previous_code"]:
             return """
             <h2>❌ Invalid code</h2>
-            <p>Please check the code on the screen and try again.</p>
+            <p>Please check the code and try again.</p>
             <br><a href="/checkin">Try again</a>
             """
 
-        minutes_late = (datetime.now() - current_session["start_time"]).seconds / 60
+        # Proper timezone-aware late calculation
+        now = datetime.now(TZ)
+        minutes_late = (now - current_session["start_time"]).seconds / 60
         status = "Late" if minutes_late > 10 else "Present"
 
         current_session["checkins"].append({
             "name": name,
             "status": status,
-            "time": local_time.strftime("%H:%M:%S"),
+            "time": now.strftime("%H:%M:%S"),
             "ip": user_ip
         })
 
@@ -132,9 +135,7 @@ def checkin():
 @app.route("/export")
 def export():
     def generate():
-        data = []
-        data.append(["Name", "Status", "Time"])
-
+        data = [["Name", "Status", "Time"]]
         for c in current_session["checkins"]:
             data.append([c["name"], c["status"], c["time"]])
 
@@ -152,3 +153,4 @@ def export():
 
 if __name__ == "__main__":
     app.run(debug=True)
+``
