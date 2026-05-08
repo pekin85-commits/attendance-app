@@ -1,0 +1,109 @@
+from flask import Flask, request, redirect, url_for, render_template_string
+from datetime import datetime
+import random
+import threading
+import time
+
+app = Flask(__name__)
+
+current_session = {
+    "active": False,
+    "code": None,
+    "previous_code": None,
+    "start_time": None,
+    "checkins": []
+}
+
+def generate_code():
+    return str(random.randint(10000, 99999))
+
+def rotate_codes():
+    while True:
+        if current_session["active"]:
+            current_session["previous_code"] = current_session["code"]
+            current_session["code"] = generate_code()
+        time.sleep(60)
+
+threading.Thread(target=rotate_codes, daemon=True).start()
+
+@app.route("/")
+def dashboard():
+    return render_template_string("""
+    <h1>Attendance Dashboard</h1>
+
+    {% if session.active %}
+        <h2 style="font-size:60px;">{{ session.code }}</h2>
+        <p>Started: {{ session.start_time }}</p>
+
+        <form action="/start" method="post">
+            <button>Start Class</button>
+        </form>
+
+        <form action="/end" method="post">
+            <button>End Class</button>
+        </form>
+
+        <h3>Check-ins:</h3>
+        {% for c in session.checkins %}
+            {{ c["name"] }} - {{ c["status"] }}<br>
+        {% endfor %}
+    {% else %}
+        <form action="/start" method="post">
+            <button>Start Class</button>
+        </form>
+    {% endif %}
+    """, session=current_session)
+
+@app.route("/start", methods=["POST"])
+def start():
+    current_session["active"] = True
+    current_session["code"] = generate_code()
+    current_session["previous_code"] = None
+    current_session["start_time"] = datetime.now()
+    current_session["checkins"] = []
+    return redirect(url_for("dashboard"))
+
+@app.route("/end", methods=["POST"])
+def end():
+    current_session["active"] = False
+    return redirect(url_for("dashboard"))
+
+@app.route("/checkin", methods=["GET", "POST"])
+def checkin():
+    if request.method == "POST":
+        name = request.form["name"]
+        code = request.form["code"]
+
+        if not current_session["active"]:
+            return "No active class"
+
+        for c in current_session["checkins"]:
+            if c["name"] == name:
+                return "Already checked in"
+
+        if code != current_session["code"] and code != current_session["previous_code"]:
+            return "Invalid code"
+
+        minutes_late = (datetime.now() - current_session["start_time"]).seconds / 60
+        status = "Late" if minutes_late > 10 else "Present"
+
+        current_session["checkins"].append({
+            "name": name,
+            "status": status
+        })
+
+        return "Attendance recorded!"
+
+    return """
+    <h2>Check In</h2>
+    <form method="post">
+        Name:<br>
+        <input name="name"><br>
+        Code:<br>
+        <input name="code"><br><br>
+        <button>Submit</button>
+    </form>
+    """
+
+if __name__ == "__main__":
+    app.run(debug=True)
