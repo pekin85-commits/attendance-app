@@ -21,7 +21,7 @@ def generate_code():
 
 @app.route("/")
 def dashboard():
-    if current_session["active"]:
+    if current_session["active"] and current_session["last_rotation"] is not None:
         now = datetime.now(TZ)
         elapsed = (now - current_session["last_rotation"]).seconds
 
