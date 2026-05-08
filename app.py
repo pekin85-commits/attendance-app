@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, url_for, render_template_string
+from flask import Flask, request, redirect, url_for, render_template_string, Response
 from datetime import datetime
 import random
 import threading
@@ -107,3 +107,27 @@ def checkin():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+import csv
+from flask import Response
+
+@app.route("/export")
+def export():
+    def generate():
+        data = []
+        data.append(["Name", "Status", "Time"])
+
+        for c in current_session["checkins"]:
+            data.append([c["name"], c["status"], c["time"]])
+
+        output = ""
+        for row in data:
+            output += ",".join(row) + "\n"
+
+        return output
+
+    return Response(
+        generate(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=attendance.csv"}
+    )
