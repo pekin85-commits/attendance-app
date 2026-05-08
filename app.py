@@ -76,43 +76,43 @@ def checkin():
 
         if not current_session["active"]:
             return """
-	    <h2>⛔ No active class session</h2>
-	    <p>Please wait for your instructor to start class.</p>
-	    """
-	    ``
+            <h2>⛔ No active class session</h2>
+            <p>Please wait for your instructor to start class.</p>
+            """
 
         user_ip = request.remote_addr
 
-	for c in current_session["checkins"]:
-   	    if c["name"] == name or c["ip"] == user_ip:
-        	return """
-		<h2>⚠️ Already checked in</h2>
-		<p>You have already submitted attendance.</p>
-		"""
+        # ✅ Duplicate check
+        for c in current_session["checkins"]:
+            if c["name"] == name or c["ip"] == user_ip:
+                return """
+                <h2>⚠️ Already checked in</h2>
+                <p>You have already submitted attendance.</p>
+                """
 
+        # ✅ Code validation
         if code != current_session["code"] and code != current_session["previous_code"]:
             return """
-	    <h2>❌ Invalid code</h2>
-	    <p>Please check the code on the screen and try again.</p>
-	    <br><a href="/checkin">Try again</a>
-	    """
+            <h2>❌ Invalid code</h2>
+            <p>Please check the code on the screen and try again.</p>
+            <br><a href="/checkin">Try again</a>
+            """
 
         minutes_late = (datetime.now() - current_session["start_time"]).seconds / 60
         status = "Late" if minutes_late > 10 else "Present"
 
         current_session["checkins"].append({
-    	   "name": name,
-           "status": status,
-           "time": datetime.now().strftime("%H:%M:%S"),
-           "ip": user_ip
-	})
-	``
+            "name": name,
+            "status": status,
+            "time": datetime.now().strftime("%H:%M:%S"),
+            "ip": user_ip
+        })
 
         return f"""
-	<h2>✅ Check-in successful</h2>
-	<p>Status: {status}</p>
-	<a href="/checkin">Back</a>
-	"""
+        <h2>✅ Check-in successful</h2>
+        <p>Status: {status}</p>
+        <a href="/checkin">Back</a>
+        """
 
     return """
     <h2>Check In</h2>
@@ -124,12 +124,6 @@ def checkin():
         <button>Submit</button>
     </form>
     """
-
-if __name__ == "__main__":
-    app.run(debug=True)
-
-import csv
-from flask import Response
 
 @app.route("/export")
 def export():
@@ -151,3 +145,6 @@ def export():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment;filename=attendance.csv"}
     )
+
+if __name__ == "__main__":
+    app.run(debug=True)
