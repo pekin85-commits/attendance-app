@@ -198,14 +198,55 @@ def checkin():
         """
 
     return """
-    <h2>Check In</h2>
+    <style>
+    body {
+        font-family: Arial;
+        text-align: center;
+        padding-top: 50px;
+        background-color: #f5f5f5;
+    }
+
+    input {
+        padding: 12px;
+        margin: 10px;
+        width: 220px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+    }
+
+    button {
+        padding: 12px 25px;
+        font-size: 16px;
+        border-radius: 8px;
+        background-color: #0078D4;
+        color: white;
+        border: none;
+    }
+
+    .card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        width: 300px;
+        margin: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    </style>
+
+    <div class="card">
+    <h2>✅ Check In</h2>
+
     <form method="post">
-        Name:<br>
-        <input name="name"><br>
+        Email:<br>
+        <input name="name" required><br>
+
         Code:<br>
-        <input name="code"><br><br>
+        <input name="code" required><br><br>
+
         <button>Submit</button>
     </form>
+    </div>
     """
 
 @app.route("/export")
