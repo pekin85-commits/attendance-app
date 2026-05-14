@@ -33,34 +33,105 @@ def dashboard():
     return render_template_string("""
     <meta http-equiv="refresh" content="5">
 
-    <h1>Attendance Dashboard</h1>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background: linear-gradient(to right, #f5f7fa, #c3cfe2);
+    }
 
-    {% if session.active %}
-        <h2 style="font-size:60px;">{{ session.code }}</h2>
-        <p>Started: {{ session.start_time }}</p>
+    .container {
+        margin: 30px auto;
+        width: 80%;
+    }
 
-        <form action="/start" method="post">
-            <button>Start Class</button>
-        </form>
+    .code {
+        font-size: 100px;
+        font-weight: bold;
+        color: #0078D4;
+        margin: 20px;
+    }
 
-        <form action="/end" method="post">
-            <button>End Class</button>
-        </form>
+    .button {
+        padding: 15px 30px;
+        font-size: 18px;
+        border: none;
+        border-radius: 10px;
+        background-color: #0078D4;
+        color: white;
+        margin: 10px;
+        cursor: pointer;
+    }
 
-	<br><br>
-	<a href="/export">
-    		<button>⬇️ Download Attendance CSV</button>
-	</a>
+    .button:hover {
+        background-color: #005ea6;
+    }
 
-        <h3>Check-ins:</h3>
-        {% for c in session.checkins %}
-            {{ c["name"] }} - {{ c["status"] }}<br>
-        {% endfor %}
-    {% else %}
-        <form action="/start" method="post">
-            <button>Start Class</button>
-        </form>
-    {% endif %}
+    .end-btn {
+        background-color: #d9534f;
+    }
+
+    .card {
+        background: white;
+        padding: 20px;
+        margin: 20px auto;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .count {
+        font-size: 20px;
+        margin-top: 10px;
+    }
+    </style>
+
+    <div class="container">
+        <h1>📊 Live Attendance</h1>
+
+        {% if session.active %}
+            <div class="card">
+                <div class="code">{{ session.code }}</div>
+                <p>Started: {{ session.start_time }}</p>
+
+                <form action="/start" method="post" style="display:inline;">
+                    <button class="button">🔄 Restart</button>
+                </form>
+
+                <form action="/end" method="post" style="display:inline;">
+                    <button class="button end-btn">🛑 End Class</button>
+                </form>
+
+                <div class="count">
+                    ✅ Checked in: {{ session.checkins|length }}
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Students</h3>
+                {% for c in session.checkins %}
+                    {{ c["name"] }} -
+                    <span style="color:{{ 'red' if c['status']=='Late' else 'green' }}">
+                        {{ c["status"] }}
+                    </span>
+                    <br>
+                {% endfor %}
+            </div>
+
+            <div class="card">
+                <a href="/export">
+                    <button class="button">⬇️ Download CSV</button>
+                </a>
+            </div>
+
+        {% else %}
+            <div class="card">
+                <h2>No active session</h2>
+                <form action="/start" method="post">
+                    <button class="button">✅ Start Class</button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
     """, session=current_session)
 
 @app.route("/start", methods=["POST"])
